@@ -1,0 +1,10 @@
+# railway.toml
+[build]
+builder = "NIXPACKS"
+buildCommand = "dotnet restore && dotnet publish -c Release -o out"
+
+[deploy]
+startCommand = "dotnet out/Guzelime_Hediye.dll"
+
+# .csproj alt klasördeyse aç ve klasörü yaz:
+# rootDirectory = "Guzelime_Hediye"
