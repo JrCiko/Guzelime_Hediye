@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <title>Virtual Valentine's Day Card</title>
+
+    <link rel="stylesheet" href="./css/indexStyle.css">
+
+    <style>
+        .slide-up {
+            transform: translateY(-200px);
+            opacity: 0;
+            transition: all 0.6s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="valentine" id="pageTitle">Biricik Sevgilim, Bu Mektup Sana...</h1>
+
+    <div class="envelope-wrapper">
+        <div id="envelope" class="close">
+            <div class="front flap"></div>
+            <div class="front pocket"></div>
+            <div class="letter">
+                <p class="words line1">Doğum günün kutlu olsun biricik sevgilim.</p>
+                <p class="words line2"></p>
+                <p class="words line3">Sürprizimi görmek istiyorsan devam et tuşuna bas.</p>
+            </div>
+            <div class="hearts">
+                <div class="heart a1"></div>
+                <div class="heart a2"></div>
+                <div class="heart a3"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="reset">
+        <button id="open">Mektubu Aç</button>
+    </div>
+
+    <!-- ✅ Devam Et Butonu -->
+    <div class="continue-wrapper hidden" id="continueWrapper">
+        <button id="continueBtn">Devam Et 💌</button>
+    </div>
+
+    <script src="~/js/Script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const envelope = document.getElementById("envelope");
+            const openBtn = document.getElementById("open");
+            const continueWrapper = document.getElementById("continueWrapper");
+            const continueBtn = document.getElementById("continueBtn");
+            const pageTitle = document.getElementById("pageTitle");
+
+            openBtn.addEventListener("click", function () {
+                envelope.classList.remove("close");
+                envelope.classList.add("open");
+
+                openBtn.style.display = "none";
+
+                // 🎯 Başlık kayarak kaybolsun
+                pageTitle.classList.add("slide-up");
+
+                // Devam Et butonunu göster
+                setTimeout(() => {
+                    continueWrapper.classList.remove("hidden");
+                }, 2000);
+            });
+
+            continueBtn.addEventListener("click", function () {
+                window.location.href = "/Home/Surprise";
+            });
+        });
+    </script>
+</body>
+</html>

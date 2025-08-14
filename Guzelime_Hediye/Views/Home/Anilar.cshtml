@@ -1,0 +1,264 @@
+﻿@{
+    Layout = "_Layout";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <title>📍 Anı Haritası</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/anilar.css" />
+    <link rel="stylesheet" href="/css/Style.css" />
+    <style>
+        /* --- Basit, temiz galeri --- */
+        .gallery-wrap {
+            margin: 24px auto;
+            width: 100%;
+            max-width: 1100px;
+            padding: 0 12px;
+        }
+
+        .gallery-title {
+            font-weight: 700;
+            margin: 0 0 12px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .thumb {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: zoom-in;
+            transition: transform .15s ease;
+            box-shadow: 0 2px 12px rgba(0,0,0,.15);
+        }
+
+            .thumb:hover {
+                transform: translateY(-2px);
+            }
+
+        /* --- Lightbox --- */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            display: none;
+            place-items: center;
+            background: rgba(0,0,0,.85);
+            z-index: 9999;
+        }
+
+            .lightbox.show {
+                display: grid;
+            }
+
+            .lightbox img {
+                max-width: 92vw;
+                max-height: 86vh;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.5);
+            }
+
+        .lb-controls {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .lb-btn, .lb-close {
+            pointer-events: all;
+            user-select: none;
+            cursor: pointer;
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 700;
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            backdrop-filter: blur(4px);
+            transition: transform .1s ease, background .15s ease;
+        }
+
+            .lb-btn:hover, .lb-close:hover {
+                background: rgba(255,255,255,.2);
+                transform: scale(1.03);
+            }
+
+        .lb-close {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+        }
+
+        @@media (max-width: 520px) {
+            .lb-btn {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="heartCanvas" style="position: fixed; top: 0; left: 0; z-index: -1;"></canvas>
+
+    <div class="turkey-map" style="width: 100%; max-width: 800px; margin: 20px auto 0;">
+        <svg viewBox="0 0 800 600" style="width: 100%; height: auto;">
+            <!-- Harita -->
+            <image href="/images/turkiye-haritasi.png" x="0" y="0" width="800" height="600" />
+
+            <!-- Şehir noktaları -->
+            <circle cx="285" cy="220" r="10" fill="#ff69b4" style="cursor:pointer" onclick="showPhotos('Ankara')" />
+            <circle cx="120" cy="150" r="10" fill="#ff69b4" style="cursor:pointer" onclick="showPhotos('İstanbul')" />
+            <circle cx="100" cy="380" r="10" fill="#ff69b4" style="cursor:pointer" onclick="showPhotos('Datça')" />
+            <circle cx="250" cy="180" r="10" fill="#ff69b4" style="cursor:pointer" onclick="showPhotos('Bolu')" />
+            <circle cx="220" cy="235" r="10" fill="#ff69b4" style="cursor:pointer" onclick="showPhotos('Eskişehir')" />
+        </svg>
+    </div>
+
+    <!-- Galeri alanı -->
+    <div class="gallery-wrap" id="galleryWrap" style="display:none;">
+        <h2 class="gallery-title" id="galleryTitle"></h2>
+        <div class="gallery" id="gallery"></div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" aria-hidden="true">
+        <button class="lb-close" id="lbClose" title="Kapat (Esc)">✕</button>
+        <img id="lbImg" alt="Fotoğraf" />
+        <div class="lb-controls">
+            <button class="lb-btn" id="lbPrev" title="Önceki (←)">◀</button>
+            <button class="lb-btn" id="lbNext" title="Sonraki (→)">▶</button>
+        </div>
+    </div>
+
+    <script>
+        // Şehre göre sadece foto yollarını tutuyoruz:
+        // Burayı kendi path'lerinle doldur.
+        // Örn: "/images/Ankara/IlkBirlikteKalisimiz.jpg" vs.
+        const photosByCity = {
+            "Ankara": [
+                "/images/IlkBirlikteKalisimiz.jpg",
+                "/images//Anitkabir.jpg",
+                "/images/OylesineBirGun.jpg",
+                "/images/KadinlarGunuCicegi.jpg",
+                "/images/ArabaFestivalimiz.jpg",
+                "/images/CanBonomoKonseri.jpg",
+                "/images/IlkElEleTutusmamiz.jpg",
+                "/images/IlkFotografimiz.jpg",
+                "/images/IlkKonserimiz.jpg",
+                "/images/KardanAdamOynadigimizGun.jpg",
+                "/images/YilmazAbi.jpg",
+                "/images/Yilbasi.jpg",
+                "/images/YilDonumu.jpg",
+                "/images/TandoganFestivalimiz.jpg",
+                "/images/SendenIlkUzakKaldigim.jpg",
+                "/images/SampiyonlukKutlamasi.jpg",
+                "/images/EvdeAlkol.jpg",
+            ],
+            "İstanbul": [
+                "/images/GalataKulesi.jpg",
+                "/images/GalataKulesineCikisimiz.jpg",
+                "/images/IlkIstanbulaGidisimiz.jpg",
+                "/images/GalatasarayMaci.jpg"
+            ],
+            "Datça": [
+                "/images/MuglaYolculugu.jpg",
+                "/images/MuglaRakiBalik.jpg",
+                "/images/MuglaEglencesi.jpg",
+                "/images/DenizKenari.jpg"
+            ],
+            "Bolu": [
+                "/images/IlkKampimiz.jpg",
+                "/images/SonKampimiz.jpg"
+            ],
+            "Eskişehir": [
+                "/images/MasalSatosu.jpg"
+            ]
+        };
+
+        // DOM referansları
+        const wrap = document.getElementById('galleryWrap');
+        const titleEl = document.getElementById('galleryTitle');
+        const galleryEl = document.getElementById('gallery');
+
+        // Lightbox referansları
+        const lb = document.getElementById('lightbox');
+        const lbImg = document.getElementById('lbImg');
+        const lbClose = document.getElementById('lbClose');
+        const lbPrev = document.getElementById('lbPrev');
+        const lbNext = document.getElementById('lbNext');
+
+        let currentList = [];
+        let currentIndex = 0;
+
+        function showPhotos(city) {
+            const list = photosByCity[city] || [];
+            titleEl.textContent = list.length ? `📍 ${city} — ${list.length} foto` : `📍 ${city} — henüz foto eklenmemiş`;
+            galleryEl.innerHTML = '';
+
+            list.forEach((src, i) => {
+                const img = document.createElement('img');
+                img.className = 'thumb';
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                img.alt = city + ' foto ' + (i + 1);
+                img.src = src;
+                img.addEventListener('click', () => openLightbox(i, list));
+                galleryEl.appendChild(img);
+            });
+
+            currentList = list;
+            wrap.style.display = 'block';
+
+            // Galeriye smooth scroll (isteğe bağlı)
+            wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function openLightbox(index, list) {
+            currentList = list || currentList;
+            currentIndex = index;
+            lbImg.src = currentList[currentIndex];
+            lb.classList.add('show');
+            lb.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeLightbox() {
+            lb.classList.remove('show');
+            lb.setAttribute('aria-hidden', 'true');
+            lbImg.src = '';
+        }
+
+        function nextImg(step = 1) {
+            if (!currentList.length) return;
+            currentIndex = (currentIndex + step + currentList.length) % currentList.length;
+            lbImg.src = currentList[currentIndex];
+        }
+
+        // Eventler
+        lbClose.addEventListener('click', closeLightbox);
+        lb.addEventListener('click', (e) => { if (e.target === lb) closeLightbox(); });
+        lbNext.addEventListener('click', () => nextImg(1));
+        lbPrev.addEventListener('click', () => nextImg(-1));
+        document.addEventListener('keydown', (e) => {
+            if (lb.classList.contains('show')) {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowRight') nextImg(1);
+                if (e.key === 'ArrowLeft') nextImg(-1);
+            }
+        });
+
+        // İsteğe bağlı: Sayfa ilk açıldığında bir şehir yüklensin
+        // showPhotos('Ankara');
+    </script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Seninle Anılarım 📸</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/Style.css" />
+</head>
+<body>
+    <style>
+        .timeline-wrapper {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            margin: 30px auto 40px;
+            max-width: 90%;
+            padding: 10px 0;
+            border-top: 2px dashed #ff69b4;
+            border-bottom: 2px dashed #ff69b4;
+            position: relative;
+        }
+
+        .timeline-dot {
+            padding: 8px 16px;
+            background: white;
+            color: #ff69b4;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(255, 105, 180, 0.2);
+            transition: all 0.5s ease;
+            opacity: 0;
+            transform: scale(0.7);
+            pointer-events: none;
+        }
+
+            .timeline-dot.visible {
+                opacity: 1;
+                transform: scale(1);
+                pointer-events: auto;
+            }
+
+            .timeline-dot.active {
+                background-color: #ff69b4;
+                color: white;
+                transform: scale(1.2);
+                font-weight: 600;
+            }
+
+
+            .timeline-dot::after {
+                content: attr(data-title);
+                position: absolute;
+                top: -40px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #fff0f5;
+                color: #ff1493;
+                padding: 6px 10px;
+                border-radius: 10px;
+                font-size: 12px;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+            .timeline-dot:hover::after {
+                opacity: 1;
+            }
+
+            .timeline-dot.active {
+                background-color: #ff69b4;
+                color: white;
+                transform: scale(1.2);
+                font-weight: 600;
+            }
+
+    </style>
+    <canvas id="heartCanvas" style="position: fixed; top: 0; left: 0; z-index: -1;"></canvas>
+    <div class="memory-container">
+        <h2 id="memory-title">Hazır mısın?</h2>
+        <div class="timeline-wrapper" id="timelineWrapper"></div>
+        <img id="giftbox-image" src="/images/GiftBox.png" class="" width="250" />
+        <img id="memory-image" src="" class="hidden" width="250" />
+        <p id="memory-text" style="
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 15px;
+    font-size: 17px;
+    line-height: 1.6;
+    text-align: center;
+    white-space: pre-line;">
+        </p>
+        <button id="start-button" onclick="startSurprise()">Hazırım 🎁</button>
+        <button id="next-button" class="hidden" onclick="nextMemory()">Devam Et</button>
+    </div>
+    <script>
+        const memories = [  
+            {
+                title: "🤝💓 İlk el ele tutuştuğumuz gün",
+                image: "/images/IlkElEleTutusmamiz.jpg",
+                text: "O gün kalbimin nasıl çarptığını sana anlatamam. Arabayı sürüyorum fakat nasıl, nereye, neden asla bilmiyorum sadece seninle olmak istediğimi biliyordum.",
+                date: "06.04.2024"
+            },
+            {
+                title: "💞✨ İlk çıktığımız gün",
+                image: "/images/IlkFotografimiz.jpg",
+                text: "Bir o kadar heyecanlı, bir o kadar da stresliydim yanına gelirken... Hem seninle çıkmaya başladığımız ilk günün heyecanı, hem de seni evine gönderecek olmamın üzüntüsüyle, duygu karmaşası içerisinde geçirdiğim bir gündü. Asla unutmam mümkün değil.",
+                date: "07.04.2024"
+
+            },
+            {
+                title: "🌱💫 Yeni Yakınlaşıyoruz",
+                image: "/images/YeniYakinlasiyoruz.jpg",
+                text: "Daha yeni yeni yakınlaşıyorduk ve o yüzden içimde bir heyecan ve stres vardı... Sürekli seninle olmak istiyordum fakat seni henüz o kadar yakından tanımıyordum o yüzden nasıl davranacağım konusunda endişelerim vardı. Ya seni üzersem, ya seni kıracak bir şey yaparsam diye düşünmekten içim içimi yiyordu.",
+                date: "24.04.2024"
+
+            },
+            {
+                title: "🏡❤️ İlk Birlikte Kalışımız",
+                image: "/images/IlkBirlikteKalisimiz.jpg",
+                text: "Gel dedin ya bana, her şeyi bırakıp, herkese yalan söyleyip ya da bir bahane bulup hemen ışınlanıverdim yanına. Büyük bir heyecan ve büyük bir mutlulukla. O günün akşamı ayrı sabahı ayrı inanılmazdı, asla kelimelerle tarif edilecek gibi değil.",
+                date: "27.04.2024"
+            },
+            {
+                title: "🚗🎉 İlk Araba Festivalimiz",
+                image: "/images/ArabaFestivalimiz.jpg",
+                text: "Çok ani bir kararla Instagram'da gördüğümüz araba festivaline gitmiştik. Gerçekten inanılmaz keyif aldığım bir gündü, bu lafı daha çoook kullanacağım eminim bundan çünkü seninle geçirdiğim her an inanılmaz keyifliydi. Bugün aşırı eğlenmemize rağmen bir o kadar da yorulmuştuk ki, güneşin alnında ayakta gerçekten çok yorucu bir gündü. Etkinlik sonrası dönüş yolundaki o tatlı uyuyuşunu asla unutamıyorum.",
+                date: "19.05.2024"
+            },
+            {
+                title: "🎶💃 İlk Konserimiz",
+                image: "/images/IlkKonserimiz.jpg",
+                text: "Hiç unutabilir miyim? O günkü heyecanını, mutluluğunu... Güzelce süslendin, hazırlandın ve benim işimi daha da zorlaştırdın. Aklımı yerinde tutmak imkansızdı. Hem de sen o tatlı ve heyecanlı hareketlerini sergilerken. O gün hiç bitmesin istedim fakat bir yandan da bitmesini istiyordum çünkü aklımı yitirmiştim senin o tatlılığından, güzelliğinden ve kelimelere asla dökemeceğim içimdeki hislerden dolayı.",
+                date: "07.06.2024"
+            },
+            {
+                title: "✈️💔 İlk Ayrılığımız",
+                image: "/images/SendenIlkUzakKaldigim.jpg",
+                text: "O gün ne kadar ağladığımı hatırlarsın herhalde. Seni asla bırakmak istemiyordum, senden 1 saniye bile ayrı kalmak istemiyordum fakat bir süreliğine buna mecburduk. Büyük bir üzüntüyle (Her ne kadar sana belli etmemeye çalışsam da pek başarılı olduğum söylenemez) seni evine gönderdim",
+                date: "27.06.2024"
+            },
+            {
+                title: "🏕️🔥 İlk Kampımız",
+                image: "/images/IlkKampimiz.jpg",
+                text: "Sana daha yeni kavuşmuştum evinden yeni gelmiştin ve seninle baş başa kalmak istiyordum. Daha yeni de kamp malzemeleri almıştık ve bir anda Bolu Yedigöller'e sürmeye başladık. Evet tecrübesizdik, evet toyduk fakat bir şekilde üstesinden geldik ve hayatımda o zamana kadar yaptığım en güzel tatili yaptım sayende. Ufak 1-2 kaza yaşandı tabii ama şu an bunları gündeme getirmenin bir anlamı yok.",
+                date: "20.09.2024"
+            },
+            {
+                title: "🚌🌃 İlk İstanbula Gidişimiz",
+                image: "/images/IlkIstanbulaGidisimiz.jpg",
+                text: "Seninle birlikte ilk defa otobüs yolculuğu yapmıştık. Gece binip sabah 6'da Esenler Otogar'da indik. Sabah 7 gibi Karaköy İskelesinin orada deniz kenarında simit ayranla kahvaltımızı yapmıştık bu fotoğraf da o ana ait.",
+                date: "23.10.2024"
+            },
+            {
+                title: "🌉📸 İlk Galata'ya Gidişimiz",
+                image: "/images/GalataKulesi.jpg",
+                text: "Kahvaltının ardından formalarımızı giydik ve Galata Kulesi'ne geldik. Aşağıda fotoğraf çekildik ve...",
+                date: "23.10.2024"
+            },
+            {
+                title: "🌉📸 Galata'ya Çıkışımız",
+                image: "/images/GalataKulesineCikisimiz.jpg",
+                text: "Galata Kulesine ilk kiminle çıkarsan onunla evlenirsin derler. Benim de seni buraya sürükleme sebeplerimden birisi oydu. Evet önümüzde daha çok uzun bir vakit var gibi duruyor olabilir fakat ben o anı yaşamak için bir ömür beklemeye razıyım.",
+                date: "23.10.2024"
+            },
+            {
+                title: "⚽🟡🔴 Galatasaray Maçına İlk Gelişimiz",
+                image: "/images/GalatasarayMaci.jpg",
+                text: "Galatasaray'ın benim için önemli olduğunu biliyorsun ve seninle birlikte yani hayatımda bu zamana kadar gelmiş ve gelecek en önemli insanı buraya getirmek benim için ayrı bir heyecan vericiydi. Böyle bir anı anlatacak kelime bulamıyorum.",
+                date: "23.10.2024"
+            },
+            {
+                title: "🏛️ Anıtkabir'e Gelişimiz",
+                image: "/images/Anitkabir.jpg",
+                text: "Bu kadar önemli bir yere hayatımın kadınıyla gelmiş olmak... Gerçekten tarif edemeyeceğim bir his. Sabah erken kalktık, giyindik süslendik ve geldik buraya. Tarif edilemeyecek güzellikte bir gündü gerçekten.",
+                date: "29.10.2024"
+            },
+            {
+                title: "☕🌆 Tandoğan'da Otururken",
+                image: "/images/OylesineBirGun.jpg",
+                text: "Yine her zamanki gibi yemek yemiş, üstüne midye yemiş bir şekilde gitmiştik kahve içmeye. Aslında çok sıradan bir gündü fakat hep olduğu gibi, seninle geçen her günüm sayende o kadar özel oluyordu ki... Asla aklımdan çıkmıyor.",
+                date: "25.11.2024"
+            },
+            {
+                title: "🎄🍷 Yılbaşı Akşamı",
+                image: "/images/Yilbasi.jpg",
+                text: "Kendimize Sushi yapmışız, şarabımızı doldurmuşuz sadece sen ve ben... İnanılmaz romantik ve benim için çok önemli bir akşamdı. Hayatımın en güzel akşamlarından birisiydi, sayende...",
+                date: "31.12.2024"
+            },
+            {
+                title: "🍷🎶 Meyhane",
+                image: "/images/Meyhanemiz.jpg",
+                text: "Evet toplu gittiğimiz bir gündü, sadece ikimiz yoktuk fakat benim için çok önemli bir faktör vardı. Yanımda sen vardın. Sen olmasan asla bu kadar keyif alamazdım. Hepsi senin sayende. Her şey senin sayende.",
+                date: "29.01.2025"
+            },
+            {
+                title: "🏠🥂 Baş Başa Evde İçtiğimiz Gün",
+                image: "/images/EvdeAlkol.jpg",
+                text: "Aslında dışarıdan bakan bir göze göre bu günün o kadar da büyük bir özelliği yok ama benim için var. O da sensin.",
+                date: "25.02.2025"
+            },
+            {
+                title: "🎤🌟 Can Bonomo Konseri",
+                image: "/images/CanBonomoKonseri.jpg",
+                text: "DKTT Konseri kadar özel bir konser değil fakat o günle ilgili aklımdan çıkaramadığım tek bir şey var. O da güzelliğin. Şimdi diyorsundur ki abartma fakat bu his senin anlayabileceğin bir his değil.",
+                date: "28.02.2025"
+            },
+            {
+                title: "☃️❄️ Elmadağ'a Kardan Adam Yapmaya Gittiğimiz Gün",
+                image: "/images/KardanAdamOynadigimizGun.jpg",
+                text: "Baktık Ankara'nın içine çok kar yağmıyor, biz de gittik kardan adam oynamak için taa Elmadağ'a kadar. İnanılmaz yükseğe çıktık bildiğin daha tırmandık ve yukarıda bir şaheser yarattık.",
+                date: "01.03.2025"
+            },
+            {
+                title: "😂👨‍🦲 Ve Yılmaz Abi",
+                image: "/images/YilmazAbi.jpg",
+                text: "İşte o şaheser:",
+                date: "01.03.2025"
+            },
+            {
+                title: "🌹💐 Kadınlar Günü",
+                image: "/images/KadinlarGunuCicegi.jpg",
+                text: "O Günkü gülümsemeni asla unutamıyorum. Sen anneme çiçek alalım demiştin fakat ben çoktan senin çiçeğini hazırlamıştım bile. Çok mutluydun. Sen mutluysan ben de mutluyum.",
+                date: "08.03.2025"
+            },
+            {
+                title: "🏰🚆 Eskişehir'e Gittiğimiz Gün",
+                image: "/images/MasalSatosu.jpg",
+                text: "Sınavlar başlamadan biraz gezelim dedik ve bir anda kendimizi Eskişehir'e doğru yola çıkarken bulduk. Müebbet hapis gibi bir yolculuktan sonra Eskişehir'e vardık. Kahvaltı yaptık, gezilecek yerlerini gezdik, çok keyifli bir gündü. Eskişehir'in çok bir olayı yokmuş fakat ben seninle çok eğlendim.",
+                date: "15.03.2025"
+            },
+            {
+                title: "🍷🍽️🌹✨ Yıl Dönümümüz",
+                image: "/images/YilDonumu.jpg",
+                text: "O yemeğe tam 1. yılımızda sınavlardan ötürü gidememiş olsak da sonuç olarak 1. yılımızı kutluyorduk. Rüya gibi geliyordu ama gerçekten o 1 yıl su gibi geçmişti. Atakule'deki o dönen restorana götürmüştüm seni. Hayatımda gördüğüm en güzel restoranlardan birisiydi, tabii bunun sebebi yine sendin. Yaptığım her aktiviteyi, en ufak şeyleri bile güzelleştiren tek insansın. Sen benim her şeyimsin. Seni çok seviyorum minik sevgilim. ",
+                date: "06.04.2025"
+            },
+
+            {
+                title: "🏕️🌧️ Son Kampımız",
+                image: "/images/SonKampimiz.jpg",
+                text: "Finallerden önce kampa gidelim ve yeni çadırı deneyelim dedik, ardından değişiklik olsun diye Abant'a gittik. Ve bizim bir kamp klasiğimiz yine yağmur bastırdı. Fakat bu sefer Yedigöller'de olduğu gibi tecrübesiz değildik ve daha büyük bir çadırımız vardı. Masa ve sandalyeleri 2. gün çadırın içine taşıdık ve orada oturmaya devam ettik. Yağmurdan ötürü çok yorucu olmasına rağmen bir o kadar da çok romantik bir tatildi.",
+                date: "24.05.2025"
+            },
+            {
+                title: "🚌🏖️ Muğla Yolculuğu",
+                image: "/images/MuglaYolculugu.jpg",
+                text: "Ve geldik şimdi ilk deniz tatilimize. Datça'ya doğru uzun bir otobüs yolculuğuna çıktık.",
+                date: "21.06.2025"
+            },
+            {
+                title: "🐟🥂 Datça'da Rakı Balık",
+                image: "/images/MuglaRakiBalik.jpg",
+                text: "Eski Datça'nın içerisinde hep hayalini kurduğumuz rakı balığa gittik. İnanılmaz içtik hatta kalkarken önümüzü gördüğümüzü bile düşünmüyorum.",
+                date: "25.06.2025"
+            },
+            {
+                title: "🎉🍺 Muğla Eğlencesi",
+                image: "/images/MuglaEglencesi.jpg",
+                text: "Bira içmeye gitmeden önce cicilerimizi giydik ve yola çıktık. O kadar güzel olmuştun ki. Bu lafı çok tekrarlıyorum biliyorum ama gerçekten ne kadar güzel olduğunu benim gözümden görmeden asla anlayamazsın. Zaten fotoğraftaki bakışlarımdan biraz da olsa anlamış olabilirsin.",
+                date: "27.06.2025"
+            },
+            {
+                title: "🌊🚤 Datça'da Deniz Gezintisi",
+                image: "/images/DenizKenari.jpg",
+                text: "Son günümüz, valizlerimizi hazırlayıp deniz kenarında yürüyüşe çıktık. O gün bu tatilin gerçek olamayacak kadar güzel olduğunu düşünüyordum başka bir şey düşünemiyordum.",
+                date: "28.06.2025"
+            },
+
+            {
+                title: "💖♾️ Sonsuza kadar birlikte",
+                image: null,
+                text: "Ve daha buraya yazamadığım, ekleyemediğim binlerce kıymetli anımız var. Seninle birlikte geçirdiğim her saniyede diyorum ki, sen benim en büyük şansımsın. İyi ki doğdun sevgilim seni çok seviyorum nice mutlu yaşlara. İyi ki varsın, iyi ki benimlesin, iyi ki seni çok sevmişim ve sevmeye de devam edeceğim... 💖♾️",
+                date: "15.08.2025"
+            }
+
+        ];
+        document.addEventListener("DOMContentLoaded", () => {
+            const timelineWrapper = document.getElementById("timelineWrapper");
+
+            memories.forEach((memory, index) => {
+                const dot = document.createElement("div");
+                dot.className = "timeline-dot";
+                dot.dataset.index = index;
+                dot.dataset.title = memory.title;
+                dot.innerText = memory.date;
+                // Sadece ilk olanı görünür yap
+                if (index === 0) {
+                    dot.classList.add("visible");
+                }
+                timelineWrapper.appendChild(dot);
+            });
+        });
+
+        let currentIndex = 0;
+        window.nextMemory = function () {
+            if (currentIndex < memories.length) {
+                const memory = memories[currentIndex];
+
+                // Başlık ve metin
+                document.getElementById("memory-title").innerText = memory.title;
+                const textEl = document.getElementById("memory-text");
+
+                if (memory.text) {
+                    textEl.style.display = "block";
+                    typeTextSafely(textEl, memory.text);
+                } else {
+                    textEl.innerText = "";
+                    textEl.style.display = "none";
+                }
+
+                // Görsel
+                const imgElement = document.getElementById("memory-image");
+
+                if (memory.image) {
+                    imgElement.style.display = "block";
+                    imgElement.src = memory.image + '?v=' + new Date().getTime();  // 🔥
+
+                    // 👉 class'ları temizle
+                    imgElement.classList.remove("memory-appear", "glow");
+
+                    void imgElement.offsetWidth; // reflow
+
+                    imgElement.classList.add("memory-appear");
+                    setTimeout(() => {
+                        imgElement.classList.add("glow");
+                    }, 600); // animasyon bitince glow gelsin
+
+                    document.getElementById("timelineWrapper").style.display = "flex";
+                } else {
+                    imgElement.style.display = "none";
+                    imgElement.className = "";
+                }
+
+                // Timeline aktiflik
+                const timelineDots = document.querySelectorAll(".timeline-dot");
+                timelineDots.forEach((el, i) => {
+                    el.classList.toggle("active", i === currentIndex);
+                    if (i <= currentIndex) {
+                        el.classList.add("visible");
+                    }
+                });
+
+                currentIndex++;
+            } else {
+                // const btn = document.getElementById("next-button");
+                // btn.disabled = true;
+                // btn.innerText = "💗 Bitti";
+                //----------------------------------------------------
+                const btn = document.getElementById("next-button");
+                btn.disabled = true;
+                btn.innerText = "Yükleniyor…";
+                // ✅ Anılar sayfasına yönlendir
+                window.location.href = '/Home/Anilar#love';
+            }
+        };
+
+        // Arka plandaki kalpler animasyonu
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        let hearts = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createHeart() {
+            return {
+                x: Math.random() * canvas.width,
+                y: -20,
+                size: Math.random() * 20 + 10,
+                speed: Math.random() * 1 + 0.5,
+                opacity: Math.random() * 0.5 + 0.5
+            };
+        }
+
+        function drawHeart(heart) {
+            ctx.fillStyle = `rgba(255, 105, 180, ${heart.opacity})`;
+            ctx.beginPath();
+            ctx.moveTo(heart.x, heart.y);
+            ctx.bezierCurveTo(heart.x + heart.size / 2, heart.y - heart.size / 2,
+                heart.x + heart.size, heart.y + heart.size / 3,
+                heart.x, heart.y + heart.size);
+            ctx.bezierCurveTo(heart.x - heart.size, heart.y + heart.size / 3,
+                heart.x - heart.size / 2, heart.y - heart.size / 2,
+                heart.x, heart.y);
+            ctx.fill();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (Math.random() < 0.1) {
+                hearts.push(createHeart());
+            }
+
+            for (let i = 0; i < hearts.length; i++) {
+                const h = hearts[i];
+                h.y += h.speed;
+                drawHeart(h);
+            }
+
+            hearts = hearts.filter(h => h.y < canvas.height + 50);
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+        function typeTextSafely(element, fullText, speed = 60) {
+            if (element.typingInterval) {
+                clearInterval(element.typingInterval);
+            }
+
+            element.innerHTML = ""; // Temizle
+            let i = 0;
+
+            element.typingInterval = setInterval(() => {
+                element.innerHTML += fullText.charAt(i);
+                i++;
+
+                if (i >= fullText.length) {
+                    clearInterval(element.typingInterval);
+                    delete element.typingInterval;
+                }
+            }, speed);
+        }
+
+        document.getElementById("memory-image").classList.remove("glow");
+        function startSurprise() {
+            const gift = document.getElementById("giftbox-image");
+            const memoryImg = document.getElementById("memory-image");
+            const title = document.getElementById("memory-title");
+            const startBtn = document.getElementById("start-button");
+            const nextBtn = document.getElementById("next-button");
+
+            console.log("startSurprise çalıştı");
+
+            title.innerText = "🎁 Sürpriz Açılıyor...";
+            startBtn.style.display = "none";
+
+            gift.classList.add("giftbox-animate");
+
+            setTimeout(() => {
+                gift.style.display = "none"; // kutuyu gizle
+                memoryImg.classList.remove("hidden"); // anı görselini aç
+                nextBtn.classList.remove("hidden");   // Devam Et tuşu gelsin
+                nextMemory(); // ilk anıyı yükle
+            }, 1300);
+        }
+
+    </script>
+</body>
+</html>
